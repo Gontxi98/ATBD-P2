@@ -16,17 +16,23 @@ def checkIfExists(json_autores,nuevo_autor:str):
 
 def addNodeWithNewAuthor(tx,ISBN,titulo,año_publi,id_autor,nombre_autor):
     query = (
-        "  MERGE (a:Autores{}) "
-        "MERGE "
+        "MERGE (a:Autores{id_autor:$id_autor,nombre:$nombre_autor})"
+        "MERGE (l:Libros {ISBN: toInteger($ISBN),titulo: $titulo,año_publi: $año_publi})"
+        "MERGE (l)-[:AUTOR]->(a)"
         )
-    return
+    tx.run(query,id_autor=id_autor,titulo=titulo,año_publi=año_publi,ISBN =ISBN,nombre_autor=nombre_autor)
+    
 
-def addNodeWithExistingAuthor(tx,ISBN,titulo,año_publi,id_autor):
-    query = ("  MATCH (a:Autores {}) ")
-    return
+def addNodeWithExistingAuthor(tx,ISBN,titulo,año_publi,nombre_autor):
+    query = ("  MATCH (a:Autores {nombre:$nombre_autor})"
+             "MERGE (l:Libros {ISBN: toInteger($ISBN),titulo: $titulo,año_publi: $año_publi})"
+             "MERGE (l)-[:AUTOR]->(a)"
+             )
+    tx.run(query,titulo=titulo,año_publi=año_publi,ISBN =ISBN,nombre_autor=nombre_autor)
+    
 
 df = pd.read_csv("./books.csv",sep=";",on_bad_lines='skip',encoding='latin-1')
-url = "bolt://localhost:"
+url = "bolt://localhost:7687"
 usuario = "neo4j"
 password = "master22"
 json_autores = []
@@ -45,7 +51,25 @@ with GraphDatabase.driver(url,auth=(usuario,password)) as GraphDriver:
             if id > count_authors:
                 count_authors +=1
                 #Aquí el autor no existe por lo que hay que añadir el nuevo registro
+                session.execute_write(
+                                    addNodeWithNewAuthor,
+                                    int(row["ISBN"]),
+                                    row["Book-Title"],
+                                    int(row["Year-Of-Publication"]),
+                                    id,
+                                    row["Book-Author"])
+                author = {
+                "id_autor":int(id),
+                "nombre_autor":str(row["Book-Author"])
+                }
+                json_autores.append(author)
             else:
+                session.execute_write(
+                                addNodeWithExistingAuthor,
+                                int(row["ISBN"]),
+                                row["Book-Title"],
+                                int(row["Year-Of-Publication"]),
+                                row["Book-Author"])
                 print("Repetido: ",str(row["Book-Author"]))
                 ##Aquí meter el autor si existe
 
