@@ -1,0 +1,14 @@
+Actividad 5
+    #Apartado 1
+        #Subapartado 1
+            MATCH (a:Autores{nombre:"John F. Love"})<-[:AUTOR]-(l:Libros)
+            WHERE l.año_publi <= 2020
+            RETURN a,l;
+        #Subapartado 2
+            MATCH (a:Autores {nombre:"Amy Tan"})<-[:AUTOR]-(l:Libros)
+            WHERE l.titulo STARTS WITH "The"
+            RETURN a,l;
+    #Apartado 2
+        MATCH (l:Libros)-[:AUTOR]->(a:Autores) 
+        WHERE l.ISBN = 966986105
+        RETURN a,l;
